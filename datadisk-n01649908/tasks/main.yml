@@ -1,0 +1,96 @@
+---
+- name: Ensure the /dev/sdb device exists
+  stat:
+    path: /dev/sdc
+  register: sdc_device
+
+- name: Partition the disk with a GPT label
+  parted:
+    device: /dev/sdc
+    label: gpt
+  become: yes
+  when: sdc_device.stat.exists and sdc_device.stat.isblk
+
+- name: Create 4GB partition with XFS (20% of disk)
+  parted:
+    device: /dev/sdc
+    number: 1
+    part_start: "0%"
+    part_end: "20%"
+    state: present
+    unit: "%"
+    fs_type: xfs
+  become: yes
+  when: sdc_device.stat.exists and sdc_device.stat.isblk
+
+- name: Create 5GB partition with EXT4 (25% of disk)
+  parted:
+    device: /dev/sdc
+    number: 2
+    part_start: "20%"
+    part_end: "45%"
+    state: present
+    unit: "%"
+    fs_type: ext4
+  become: yes
+  when: sdc_device.stat.exists and sdc_device.stat.isblk
+
+- name: Format /dev/sdc1 with XFS
+  filesystem:
+    fstype: xfs
+    dev: /dev/sdc1
+  become: yes
+
+- name: Format /dev/sdc with EXT4
+  filesystem:
+    fstype: ext4
+    dev: /dev/sdc2
+  become: yes
+
+- name: Create mount point /part1
+  file:
+    path: /part1
+    state: directory
+  become: yes
+
+- name: Create mount point /part2
+  file:
+    path: /part2
+    state: directory
+  become: yes
+
+- name: Mount /dev/sdc1 to /part1
+  mount:
+    path: /part1
+    src: /dev/sdc1
+    fstype: xfs
+    opts: defaults
+    state: mounted
+  become: yes
+
+- name: Mount /dev/sdc2 to /part2
+  mount:
+    path: /part2
+    src: /dev/sdc2
+    fstype: ext4
+    opts: defaults
+    state: mounted
+  become: yes
+
+- name: Add /part1 to fstab
+  mount:
+    path: /part1
+    src: /dev/sdc1
+    fstype: xfs
+    opts: defaults
+    state: present
+  become: yes
+
+- name: Add /part2 to fstab
+  mount:
+    path: /part2
+    src: /dev/sdc2
+    fstype: ext4
+    opts: defaults
+    state: present
+  become: yes

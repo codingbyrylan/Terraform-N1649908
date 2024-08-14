@@ -1,0 +1,5 @@
+---
+- name: Append lines to /etc/profile using raw
+  raw: |
+    echo "#Test block added by Ansible……rylan1402" >> /etc/profile
+    echo "export TMOUT=1500" >> /etc/profile

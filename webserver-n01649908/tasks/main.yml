@@ -1,0 +1,65 @@
+# ---
+# - name: Ensure Python 2 is installed
+#   raw: |
+#     sudo yum install -y python2
+#   become: yes
+
+# - name: Set Python 2 as the default Python interpreter for Ansible
+#   set_fact:
+#     ansible_python_interpreter: /usr/bin/python2
+
+- name: Detect package manager
+  raw: |
+    if [ -x "$(command -v dnf)" ]; then
+      echo "dnf"
+    elif [ -x "$(command -v yum)" ]; then
+      echo "yum"
+    else
+      echo "unknown"
+    fi
+  register: pkg_mgr_output
+
+- name: Print detected package manager
+  debug:
+    msg: "Detected package manager: {{ pkg_mgr_output.stdout }}"
+
+- name: Set package manager fact
+  set_fact:
+    pkg_mgr: "{{ pkg_mgr_output.stdout | trim }}"
+
+- name: Verify package manager variable
+  debug:
+    var: pkg_mgr
+
+- name: Install Apache web server using raw yum
+  raw: |
+    if [ "{{ pkg_mgr }}" = "dnf" ]; then
+      sudo dnf install -y httpd
+    elif [ "{{ pkg_mgr }}" = "yum" ]; then
+      sudo yum install -y httpd
+    else
+      echo "Unsupported package manager"
+      exit 1
+    fi
+  register: install_apache_output
+  failed_when: install_apache_output.rc != 0
+  changed_when: install_apache_output.rc == 0
+  become: yes
+
+- name: Print Apache installation output
+  debug:
+    var: install_apache_output.stdout_lines
+
+- name: Ensure Apache is running and enabled
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Create index.html file with hostname
+  template:
+    src: "index.html.j2"
+    dest: /var/www/html/index.html
+    mode: '0444'
+  become: yes

@@ -1,0 +1,33 @@
+---
+- name: Apply roles to all Linux nodes
+  hosts: vm1-n01649908.canadacentral.cloudapp.azure.com,vm2-n01649908.canadacentral.cloudapp.azure.com,vm3-n01649908.canadacentral.cloudapp.azure.com
+  become: yes
+  become_user: root
+  become_method: sudo
+  vars:
+    ansible_become_password: "Rylan@1408"
+
+  tasks:
+    - name: Allow rylan1402 to run sudo without a password
+      raw: echo 'rylan1402 ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/rylan1402
+
+    - name: Verify sudo without password
+      raw: sudo -l
+      changed_when: false
+
+    # - name: Ensure host keys are removed from known_hosts
+    #   local_action:
+    #     module: known_hosts
+    #     path: /Users/n01649908/.ssh/known_hosts
+    #     name: "{{ item }}"
+    #     state: absent
+    #   with_items:
+    #     - vm1-n01649908.canadacentral.cloudapp.azure.com
+    #     - vm2-n01649908.canadacentral.cloudapp.azure.com
+    #     - vm3-n01649908.canadacentral.cloudapp.azure.com
+
+  roles:
+    - role: profile-n01649908
+    - role: user-n01649908
+    - role: datadisk-n01649908
+    - role: webserver-n01649908
